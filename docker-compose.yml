@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: ravishop-ai
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    restart: always
+
+  db:
+    image: mysql:8.0
+    container_name: ravishop-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ravishop123
+      MYSQL_DATABASE: ravishop_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: ravishop123
+    ports:
+      - "3306:3306"
+    restart: always
