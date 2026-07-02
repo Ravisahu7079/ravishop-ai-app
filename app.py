@@ -13,6 +13,7 @@ CORS(app)
 # App config
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
+
 # Health check endpoint
 @app.route('/health', methods=['GET'])
 def health():
@@ -22,6 +23,7 @@ def health():
         'version': '1.0.0',
         'environment': os.getenv('APP_ENV')
     })
+
 
 # Home endpoint
 @app.route('/', methods=['GET'])
@@ -35,6 +37,7 @@ def home():
             'ai': '/ask'
         }
     })
+
 
 if __name__ == '__main__':
     port = int(os.getenv('APP_PORT', 5000))
