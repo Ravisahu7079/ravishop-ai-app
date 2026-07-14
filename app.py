@@ -1,10 +1,12 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
-from dotenv import load_dotenv
 import os
 import sys
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))
-from ai_agent import (
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))  # noqa: E402
+
+from flask import Flask, jsonify, request  # noqa: E402
+from flask_cors import CORS  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+from ai_agent import (  # noqa: E402
     ai_agent,
     tool_debug_error,
     tool_infra_status,
@@ -14,14 +16,11 @@ from ai_agent import (
     tool_check_logs
 )
 
-# .env file load karo
 load_dotenv()
 
-# Flask app banao
 app = Flask(__name__)
 CORS(app)
 
-# App config
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 
@@ -63,7 +62,7 @@ def ask():
 
 
 @app.route('/debug', methods=['POST'])
-def debug():
+def debug_route():
     data = request.get_json()
     error = data.get('error', '')
     if not error:
@@ -112,6 +111,6 @@ def check_logs():
 
 if __name__ == '__main__':
     port = int(os.getenv('APP_PORT', 5000))
-    debug = os.getenv('DEBUG', 'False').lower() == 'true'
-    print(f" RaviShop AI starting on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    flag = os.getenv('DEBUG', 'False').lower() == 'true'
+    print(f"🚀 RaviShop AI starting on port {port}")
+    app.run(host='0.0.0.0', port=port, debug=flag)
