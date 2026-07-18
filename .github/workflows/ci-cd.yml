@@ -12,9 +12,9 @@ env:
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
-  # Job 1 — Security: Secrets Check
+  # Job 1 — Gitleaks Secret Scan
   gitleaks:
-    name: 🔒 Gitleaks Secret Scan
+    name:  Gitleaks Secret Scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,9 +23,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Job 2 — Code Quality Check
+  # Job 2 — Code Quality
   code-quality:
-    name: 🔍 Code Quality (flake8)
+    name:  Code Quality (flake8)
     runs-on: ubuntu-latest
     needs: gitleaks
     steps:
@@ -39,9 +39,23 @@ jobs:
       - name: Run flake8
         run: flake8 . --max-line-length=120 --exclude=venv
 
-  # Job 3 — Docker Build + Trivy Scan
+  # Job 3 — Checkov Terraform Scan
+  checkov:
+    name:  Checkov Terraform Scan
+    runs-on: ubuntu-latest
+    needs: gitleaks
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          soft_fail: true
+          skip_check: CKV_AWS_79,CKV_SECRET_6
+
+  # Job 4 — Docker Build + Trivy + Grype
   build-and-scan:
-    name: 🐳 Docker Build + Trivy Scan
+    name:  Docker Build + Trivy + Grype
     runs-on: ubuntu-latest
     needs: code-quality
     steps:
@@ -58,9 +72,16 @@ jobs:
           exit-code: 0
           severity: HIGH,CRITICAL
 
-  # Job 4 — Push to ECR
+      - name: Run Grype scan
+        uses: anchore/scan-action@v3
+        with:
+          image: ${{ env.ECR_REPOSITORY }}:${{ env.IMAGE_TAG }}
+          fail-build: false
+          severity-cutoff: critical
+
+  # Job 5 — Push to ECR
   push-to-ecr:
-    name: 🚀 Push to ECR
+    name:  Push to ECR
     runs-on: ubuntu-latest
     needs: build-and-scan
     if: github.ref == 'refs/heads/main'
@@ -78,7 +99,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build, tag and push to ECR
+      - name: Build tag and push to ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
