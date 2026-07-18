@@ -3,9 +3,10 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))  # noqa: E402
 
-from flask import Flask, jsonify, request  # noqa: E402
+from flask import Flask, jsonify, request, Response  # noqa: E402
 from flask_cors import CORS  # noqa: E402
 from dotenv import load_dotenv  # noqa: E402
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST  # noqa: E402
 from ai_agent import (  # noqa: E402
     ai_agent,
     tool_debug_error,
@@ -15,6 +16,7 @@ from ai_agent import (  # noqa: E402
     tool_security_scan,
     tool_check_logs
 )
+from anomaly_detector import detect_anomaly, auto_heal  # noqa: E402
 
 load_dotenv()
 
@@ -22,6 +24,18 @@ app = Flask(__name__)
 CORS(app)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+
+REQUEST_COUNT = Counter(
+    'ravishop_request_total',
+    'Total request count',
+    ['method', 'endpoint', 'status']
+)
+
+REQUEST_LATENCY = Histogram(
+    'ravishop_request_latency_seconds',
+    'Request latency in seconds',
+    ['endpoint']
+)
 
 
 @app.route('/health', methods=['GET'])
@@ -46,7 +60,10 @@ def home():
             'deploy': '/deploy/advice',
             'cost': '/cost/optimize',
             'security': '/security/scan',
-            'logs': '/logs/check'
+            'logs': '/logs/check',
+            'metrics': '/metrics',
+            'anomaly_detect': '/anomaly/detect',
+            'anomaly_heal': '/anomaly/heal'
         }
     })
 
@@ -56,8 +73,10 @@ def ask():
     data = request.get_json()
     query = data.get('query', '')
     if not query:
+        REQUEST_COUNT.labels('POST', '/ask', '400').inc()
         return jsonify({'error': 'Query required'}), 400
     result = ai_agent(query)
+    REQUEST_COUNT.labels('POST', '/ask', '200').inc()
     return jsonify({'response': result})
 
 
@@ -107,6 +126,27 @@ def security_scan():
 def check_logs():
     result = tool_check_logs()
     return jsonify({'logs': result})
+
+
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+
+
+@app.route('/anomaly/detect', methods=['GET'])
+def anomaly_detect():
+    result = detect_anomaly()
+    return jsonify({'anomaly_report': result})
+
+
+@app.route('/anomaly/heal', methods=['POST'])
+def anomaly_heal():
+    data = request.get_json()
+    issue = data.get('issue', '')
+    if not issue:
+        return jsonify({'error': 'Issue required'}), 400
+    result = auto_heal(issue)
+    return jsonify({'heal_plan': result})
 
 
 if __name__ == '__main__':
