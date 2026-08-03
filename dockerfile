@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Baaki sab code copy karo
 COPY . .
 
+# PYTHONPATH set karo
+ENV PYTHONPATH=/app
+
 # Port expose karo
 EXPOSE 5000
 

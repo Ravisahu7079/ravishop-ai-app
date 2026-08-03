@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app'))  # noqa: E402
 
@@ -19,6 +20,17 @@ from ai_agent import (  # noqa: E402
 from anomaly_detector import detect_anomaly, auto_heal  # noqa: E402
 
 load_dotenv()
+
+# Logging setup
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s %(levelname)s %(message)s',
+    handlers=[
+        logging.FileHandler('ravishop.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
@@ -40,6 +52,7 @@ REQUEST_LATENCY = Histogram(
 
 @app.route('/health', methods=['GET'])
 def health():
+    logger.info('Health check requested')
     return jsonify({
         'status': 'healthy',
         'app': os.getenv('APP_NAME'),
@@ -50,6 +63,7 @@ def health():
 
 @app.route('/', methods=['GET'])
 def home():
+    logger.info('Home endpoint requested')
     return jsonify({
         'message': 'Welcome to RaviShop AI 2026!',
         'endpoints': {
@@ -75,6 +89,7 @@ def ask():
     if not query:
         REQUEST_COUNT.labels('POST', '/ask', '400').inc()
         return jsonify({'error': 'Query required'}), 400
+    logger.info(f'AI Agent query: {query}')
     result = ai_agent(query)
     REQUEST_COUNT.labels('POST', '/ask', '200').inc()
     return jsonify({'response': result})
@@ -86,12 +101,14 @@ def debug_route():
     error = data.get('error', '')
     if not error:
         return jsonify({'error': 'Error message required'}), 400
+    logger.info(f'Debug request: {error}')
     result = tool_debug_error(error)
     return jsonify({'fix': result})
 
 
 @app.route('/infra/status', methods=['GET'])
 def infra_status():
+    logger.info('Infra status requested')
     result = tool_infra_status()
     return jsonify({'status': result})
 
@@ -102,12 +119,14 @@ def deploy_advice():
     issue = data.get('issue', '')
     if not issue:
         return jsonify({'error': 'Issue required'}), 400
+    logger.info(f'Deploy advice: {issue}')
     result = tool_deploy_advice(issue)
     return jsonify({'advice': result})
 
 
 @app.route('/cost/optimize', methods=['GET'])
 def cost_optimize():
+    logger.info('Cost optimization requested')
     result = tool_cost_optimize()
     return jsonify({'suggestions': result})
 
@@ -118,12 +137,14 @@ def security_scan():
     code = data.get('code', '')
     if not code:
         return jsonify({'error': 'Code required'}), 400
+    logger.info('Security scan requested')
     result = tool_security_scan(code)
     return jsonify({'issues': result})
 
 
 @app.route('/logs/check', methods=['GET'])
 def check_logs():
+    logger.info('Log check requested')
     result = tool_check_logs()
     return jsonify({'logs': result})
 
@@ -135,6 +156,7 @@ def metrics():
 
 @app.route('/anomaly/detect', methods=['GET'])
 def anomaly_detect():
+    logger.info('Anomaly detection requested')
     result = detect_anomaly()
     return jsonify({'anomaly_report': result})
 
@@ -145,6 +167,7 @@ def anomaly_heal():
     issue = data.get('issue', '')
     if not issue:
         return jsonify({'error': 'Issue required'}), 400
+    logger.info(f'Auto heal requested: {issue}')
     result = auto_heal(issue)
     return jsonify({'heal_plan': result})
 
@@ -152,5 +175,5 @@ def anomaly_heal():
 if __name__ == '__main__':
     port = int(os.getenv('APP_PORT', 5000))
     flag = os.getenv('DEBUG', 'False').lower() == 'true'
-    print(f"🚀 RaviShop AI starting on port {port}")
+    logger.info(f'RaviShop AI starting on port {port}')
     app.run(host='0.0.0.0', port=port, debug=flag)
