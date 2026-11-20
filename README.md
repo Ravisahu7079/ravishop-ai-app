@@ -85,7 +85,59 @@ Kubernetes and Argo CD manifests are provided as configuration only and were not
 
 ## Screenshots
 
-Add screenshots here (Grafana dashboard, pipeline run, API responses).
+### CI/CD pipeline (GitHub Actions)
+
+
+![CI/CD pipeline](docs/screenshots/ci%20cd%20pipeline.png)
+
+
+
+### AI agent (AWS Bedrock Mantle)
+
+
+![Bedrock AI model](docs/screenshots/Bedrock%20AI%20model.png)
+
+
+
+### API test (Postman)
+
+
+![Postman](docs/screenshots/Postman.png)
+
+
+
+### Monitoring: Grafana
+
+
+![Grafana dashboard](docs/screenshots/grafana%20dashboard.png)
+
+
+
+### Monitoring: Prometheus
+
+
+![Prometheus](docs/screenshots/Prometheus.png)
+
+
+
+### Infrastructure as Code: Terraform
+
+
+![Terraform deploy](docs/screenshots/terraform%20deploy.png)
+
+
+
+
+### AWS: ECR image and EC2 instance
+
+
+![ECR image](docs/screenshots/ECR%20image.png)
+
+
+
+
+![EC2 instance](docs/screenshots/aws%20ec2%20instance.png)
+
 
 ## Author
 
