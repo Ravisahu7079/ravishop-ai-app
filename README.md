@@ -21,6 +21,50 @@ AI-driven DevOps platform: a Flask API with an AI agent (AWS Bedrock Mantle, `op
 - **Monitoring:** Prometheus, Grafana, Node Exporter, CloudWatch
 - **GitOps (config only):** Kubernetes manifests, Argo CD
 
+## Architecture
+
+```mermaid
+flowchart LR
+    Dev["Developer"] -->|push| GH["GitHub"]
+
+    subgraph CI["CI/CD: GitHub Actions"]
+        direction TB
+        S1["Gitleaks"] --> S2["flake8"] --> S4["Docker build, Trivy, Grype"] --> S5["Push to ECR"]
+        S1 --> S3["Checkov"]
+    end
+
+    GH --> CI
+    S5 -->|push image| ECR["AWS ECR"]
+
+    subgraph IaC["Infrastructure as Code"]
+        TF["Terraform: VPC, EC2, RDS, IAM"]
+        AN["Ansible: Docker and app roles"]
+        TF --> AN
+    end
+
+    AN -->|deploy| EC2
+
+    subgraph EC2["AWS EC2"]
+        direction TB
+        APP["Flask API container"]
+        NE["Node Exporter"]
+        HEAL["self_heal.sh via cron"]
+        HEAL -.->|restart if down| APP
+    end
+
+    ECR -->|pull image| APP
+    APP -->|AI requests| AI["AWS Bedrock Mantle"]
+
+    subgraph MON["Monitoring"]
+        direction TB
+        PROM["Prometheus"] --> GRAF["Grafana"]
+    end
+
+    APP -->|/metrics| PROM
+    NE --> PROM
+    EC2 -->|logs and metrics| CW["CloudWatch"]
+```
+
 ## API endpoints
 
 | Endpoint | Description |
@@ -40,13 +84,13 @@ AI-driven DevOps platform: a Flask API with an AI agent (AWS Bedrock Mantle, `op
 
 ## CI/CD pipeline
 
-On every push, GitHub Actions runs:
+On every push and pull request to `main`, GitHub Actions runs:
 
-1. Gitleaks (secret scan)
-2. flake8 (lint)
-3. Checkov (IaC scan)
-4. Trivy and Grype (image vulnerability scan)
-5. Docker build and push to ECR (tagged with the commit SHA)
+1. **Gitleaks**: secret scan
+2. **flake8**: lint (after Gitleaks)
+3. **Checkov**: IaC scan, runs in parallel (soft fail)
+4. **Docker build, Trivy, Grype**: image build and vulnerability scan (report only)
+5. **Push to ECR**: on `main` only, image tagged with the commit SHA
 
 ## Run locally
 
